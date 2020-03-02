@@ -263,7 +263,7 @@ class Gollum2pdf
         .replace(")", "\\)")
         .concat(".md")
 
-    let files = find.fileSync(new RegExp(gollumPattern), this.wikiRootPath)
+    let files = find.fileSync(new RegExp(gollumPattern, 'i'), this.wikiRootPath)
     if (files.length !== 1) {
       //console.error("Page: Error getting path for href=" + href + ", matches: " + files)
       return "not-found"
