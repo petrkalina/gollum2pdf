@@ -7,7 +7,9 @@ const marked = require('marked'),
     datauri = require('datauri').sync,
     highlight = require('highlight.js'),
     find = require('find'),
-    wkhtmltopdf = require('wkhtmltopdf')
+    wkhtmltopdf = require('wkhtmltopdf'),
+    HtmlBuilder = require('./html-builder')
+
 
 class PageNode
 {
@@ -160,7 +162,8 @@ class Gollum2pdf
       console.log(node.toString())
     })
 
-    let html = this.renderHtmlHeader()
+    let htmlBuilder = new HtmlBuilder(this.options)
+    let html = htmlBuilder.buildHeader()
 
     // render TOC
     // let prev = null
@@ -181,7 +184,7 @@ class Gollum2pdf
       html += nodeHtml
     }, this)
 
-    html += this.renderHtmlFooter()
+    html += htmlBuilder.buildFooter()
     return html
   }
 
@@ -215,15 +218,6 @@ class Gollum2pdf
     })
   }
 
-  renderHtmlHeader()
-  {
-    return "header"
-  }
-
-  renderHtmlFooter()
-  {
-    return "footer"
-  }
   // references: wikiRootPath, node, nodes
   getPageRenderer()
   {
