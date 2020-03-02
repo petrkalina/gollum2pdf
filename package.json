@@ -1,0 +1,55 @@
+{
+  "name": "gollum2pdf",
+  "version": "0.0.1",
+  "description": "Generate PDF from Gollum wiki.",
+  "keywords": [
+    "wiki",
+    "gollum",
+    "markdown",
+    "convert",
+    "generate"
+  ],
+  "main": "index.js",
+  "scripts": {
+    "build": "rm -rf dist/* && ./node_modules/.bin/babel src --out-dir dist --source-maps",
+    "build-and-install-g": "npm run build && npm install -g"
+  },
+  "bin": {
+    "gollum2pdf": "dist/cli/gollum2pdf-cli.js"
+  },
+  "engines": {
+    "node": ">= 0.10",
+    "iojs": ">= 1.0"
+  },
+  "author": "Petr Kalina <petrkali@@gmail.com> (https://github.com/petrkalina)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/petrkalina/gollum2pdf"
+  },
+  "license": "GNU v.3",
+  "dependencies": {
+    "bluebird": "^2.9.34",
+    "bootstrap": "^3.3.7",
+    "commander": "^2.8.1",
+    "datauri": "^1.0.5",
+    "defaults": "^1.0.2",
+    "find": "^0.3.0",
+    "fs-extra": "^0.23.1",
+    "highlight.js": "^9.12.0",
+    "jquery": "^2.1.4",
+    "marked": "^0.3.6",
+    "node-dir": "^0.1.9",
+    "open": "0.0.5",
+    "winston": "^1.0.1",
+    "wkhtmltopdf": "^0.1.5"
+  },
+  "devDependencies": {
+    "babel": "^5.8.21",
+    "babel-core": "^5.8.23",
+    "eslint": "^1.2.1",
+    "istanbul": "^0.3.19",
+    "mocha": "^2.2.5",
+    "require-dir": "^0.3.0",
+    "should": "^7.0.4"
+  }
+}
