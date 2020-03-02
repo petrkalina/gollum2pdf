@@ -1,16 +1,7 @@
 'use strict'
 
-const marked = require('marked'),
-    fs = require('fs-extra'),
-    util = require('util'),
-    path = require('path'),
-    datauri = require('datauri').sync,
-    highlight = require('highlight.js'),
-    find = require('find'),
-    wkhtmltopdf = require('wkhtmltopdf'),
-    HtmlBuilder = require('./html-builder')
-
-
+const fs = require('fs-extra'),
+    path = require('path')
 
 class PageNode
 {
@@ -97,13 +88,6 @@ class PageNode
             link = `[${linkTitle}](${pageName})`
             return link
         })
-    }
-
-    static shiftHeaderLevels(md, level) {
-        console.log(level)
-        // there is an issue - potentially you should push page headings by "level" down in the whole page
-        // .. maybe easiest by some sed-like expression on the markdown page pushing headers by "level" down
-        return md
     }
 
     static getPageIdFromFilenameOrLink(filename) {
