@@ -124,6 +124,10 @@ class Gollum2pdf
     this.wikiRootPath = wikiRootPath
     this.options = options
 
+    // state when rendering a page
+    this.pageIdAttached = false
+    this.pageId = null
+
     if (this.options.refTracingRootPagePath) {
       // href and path are the same for the root node..
       let path = options.refTracingRootPagePath
@@ -225,6 +229,26 @@ class Gollum2pdf
     if (!this.pageRenderer) {
       this.pageRenderer = new marked.Renderer()
 
+      // optionally insert i.e. X.Y.Z to headings (... only the ones for which there are nodes present!)
+      this.pageRenderer.heading = function (text, level) {
+        const escapedText = text.toLowerCase().replace(/[^\w]+/g, '-');
+
+        // attach id to the first heading
+        let idText = ""
+        if (!self.pageIdAttached) {
+          self.pageIdAttached = true
+          idText = `id="${self.pageId}"`
+        }
+
+        return `
+          <h${level}>
+            <a name="${escapedText}" class="anchor" href="#${escapedText}">
+              <span ${idText} class="header-link"></span>
+            </a>
+            ${text}
+          </h${level}>`
+      }
+
       this.pageRenderer.code = function (code, lang) {
         if (lang && highlight.getLanguage(lang)) {
           code = highlight.highlight(lang, code, true)
@@ -276,10 +300,15 @@ class Gollum2pdf
     let mdFixedLevels = PageNode.shiftHeaderLevels(md, node.level)
 
     // todo: improve .. prepend header for the page
-    let pageHeader=`<h1 id="${node.id}" style="page-break-before: always !important;">${node.text}</h1>`
+    // let pageIdAnchor=`<h1 id="${node.id}" style="page-break-before: always !important;">${node.text}</h1>`
+    let pageIdAnchor=""
+
+    // state passed to / maintained by renderer callbacks
+    this.pageIdAttached = false
+    this.pageId = node.id
     let pageHtml = marked(mdFixedLevels, {renderer: this.getPageRenderer()})
 
-    return pageHeader.concat(pageHtml)
+    return pageIdAnchor.concat(pageHtml)
   }
 
   renderTocItem(node, prev)
@@ -356,6 +385,15 @@ class Gollum2pdf
 
     // setup once only outside this block
     let refRenderer = new marked.Renderer()
+
+    // extract first heading
+    refRenderer.heading = function (text, level) {
+      if (!parent.heading)
+        parent.heading = text
+    }
+
+    // if new min depth for linked page, create child
+    // .. will be parsed as part of next recursion
     refRenderer.link = function(href, title, text) {
       // links are normalised alredy. recognise internal links:
       if (!href.match(/^https?:\/\//)) {
@@ -370,11 +408,8 @@ class Gollum2pdf
             nodes.set(href, x)
             converter.extractChidren(x, nodes)
           }
-        }
-        else
-        {
-          if (level < prev.level)
-          {
+        } else {
+          if (level < prev.level) {
             prev.parent.removeChild(prev)
             // levels corrected on addChild operation for whole subtree..
             parent.addChild(prev)
