@@ -160,10 +160,20 @@ class Gollum2pdf
       this.pageRenderer.link = function (href, title, text) {
         let node = self.nodes.get(href)
 
-        // internal links are via #
-        if (node) {
-          href = '#' + node.id
+        // internal links (shuold also allow other extensions here!!)
+        if (!href.match(/^https?:\/\//)) {
+          // internal links are via #
+          if (node) {
+            href = '#' + node.id
+          } else if (!href.startsWith("#")) {
+            // link to page that was not found
+            return `<span class="disabled-link">${text}</span>`
+          }
         }
+
+        // detect non-existing page references
+
+
 
         // external link remain..
         return `<a href="${href}">${text}</a>`
