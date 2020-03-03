@@ -11,6 +11,14 @@ const marked = require('marked'),
     HtmlBuilder = require('./html-builder'),
     PageNode = require('./page-node')
 
+class TocItem
+{
+  constructor(level, text, href) {
+    this.level = level
+    this.text = text
+    this.href = href
+  }
+}
 
 class Gollum2pdf
 {
@@ -24,10 +32,8 @@ class Gollum2pdf
     this.pageId = null
     this.pageLevelOffset = 0
 
-    if (this.options.refTracingRootPagePath) {
-      // href and path are the same for the root node..
-      let path = options.refTracingRootPagePath
-      let title = options.refTracingRootPageTitle
+      let path = options.rootPagePath
+      let title = options.title
 
       this.nodes = new Map()
       this.root = new PageNode(path, title, path)
@@ -44,12 +50,6 @@ class Gollum2pdf
             console.log(node.toString())
           }
       )
-      // .. make non-static..
-    }
-    else {
-      console.error("Invalid Arguments..")
-    }
-
   }
 
   renderHtml() {
@@ -130,18 +130,22 @@ class Gollum2pdf
         const escapedText = text.toLowerCase().replace(/[^\w]+/g, '-');
 
         // offset headers by level
-        level += self.pageLevelOffset
+        level += self.pageNode.level
 
-        // attach id to the first heading
         let headerAttrs = ""
+        let toc = ""
         if (!self.pageIdAttached) {
+          // attach id to the first heading
           self.pageIdAttached = true
           let pageBreak = ""
-          if (self.pageLevelOffset <= self.options.pageBreakMaxLevel) {
+          if (self.pageNode.level <= self.options.pageBreakMaxLevel) {
             pageBreak = `style="page-break-before: always !important;"`
           }
 
-          headerAttrs=`id="${self.pageId}" ${pageBreak}`
+          headerAttrs=`id="${self.pageNode.id}" ${pageBreak}`
+
+          // attach toc to the first heading
+          toc = self.pageNode.renderToc()
         }
 
         return `
@@ -150,7 +154,9 @@ class Gollum2pdf
               <span class="header-link"></span>
             </a>
             ${text}
-          </h${level}>`
+          </h${level}>
+        
+          ${toc}`
       }
 
       this.pageRenderer.code = function (code, lang) {
@@ -204,7 +210,7 @@ class Gollum2pdf
   renderPage(node)
   {
     // this has to be your code, including level!!
-    let md = node.getNormMd()
+    let md = PageNode.normaliseMd(node.readMd())
 
     // todo: improve .. prepend header for the page
     // let pageIdAnchor=`<h1 id="${node.id}" style="page-break-before: always !important;">${node.text}</h1>`
@@ -212,8 +218,11 @@ class Gollum2pdf
 
     // state passed to / maintained by renderer callbacks
     this.pageIdAttached = false
-    this.pageId = node.id
-    this.pageLevelOffset=node.level
+    this.pageNode = node
+
+    if (node.extractMdOptsFromMd().toc)
+      node.generateToc()
+
     let pageHtml = marked(md, {renderer: this.getPageRenderer()})
 
     return pageIdAnchor.concat(pageHtml)
@@ -298,6 +307,10 @@ class Gollum2pdf
     refRenderer.heading = function (text, level) {
       if (!parent.heading)
         parent.heading = text
+
+      // aggregate TOC here
+      const escapedText = text.toLowerCase().replace(/[^\w]+/g, '-');
+      parent.toc.push(new TocItem(level, text, `#${escapedText}`))
     }
 
     // if new min depth for linked page, create child
@@ -326,7 +339,7 @@ class Gollum2pdf
       }
     }
 
-    marked(parent.getNormMd(), { renderer: refRenderer })
+    marked(PageNode.normaliseMd(parent.readMd()), { renderer: refRenderer })
   }
 
   static dfs(parent, nodeList)

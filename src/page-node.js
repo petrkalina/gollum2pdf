@@ -20,6 +20,9 @@ class PageNode
         // heading (1st h1 in page text)
         // is set as part of exploring children, when the MD is parsed
         this.heading = null
+
+        // aggregated during initial parsing
+        this.toc = []
     }
 
     removeChild(node)
@@ -45,49 +48,102 @@ class PageNode
         this.children.forEach(child => {child.adjustLevel(level + 1)})
     }
 
-    // proomise??
-    getNormMd()
+    readMd()
     {
-        if (!this.normMd)
-        {
-            let pageMd = fs.readFileSync(this.path).toString()
-            // normalize links
-            this.normMd = PageNode.normaliseMdLinks(pageMd)
+        if (!this.md) {
+            this.md = fs.readFileSync(this.path).toString()
+            this.extractMdOptsFromMd()
         }
 
-        return this.normMd
+        return this.md
     }
 
-    static normaliseMdLinks(markdown)
-    {
-        return markdown.replace(/\[\[([^\]]+)\]\]/g, function(allPattern, link) {
+    extractMdOptsFromMd() {
+        if (!this.mdOpts) {
+            this.mdOpts = {}
 
-            // inside of brekets link can be added as:
-            // - page name only [[Calls]], [[Call-Log]];
-            // - link title only [[Call Log]];
-            // - link title and page name [[Call Log|Call-Log]], [[Log|Call Log]].
+            // detect Gollum TOC
+            const toc = RegExp('/\\[\\[_TOC_[^\\]]*\\]\\]/g');
+            this.mdOpts.toc = toc.test(this.md)
+        }
 
-            // search for link title
-            let linkTitle = link.replace(/\|([^\|]+)/, "")
+        return this.mdOpts
+    }
 
-            // search for page name
-            let pageName = link.replace(/([^\|]+)\|/, "")
+    renderToc(){
+        let html = `<div class="toc">
+    <div class="toc-title">Table of Contents</div>
+    <ul>`
 
-            if(!linkTitle){
-                linkTitle = link
+        // render items
+        let rendered = null
+        this.toc.forEach(tocItem => {
+            if (rendered) {
+                let shiftToNext = tocItem.level - rendered.level
+
+                if (shiftToNext > 0) {
+                    html += `<li><a href="${rendered.href}">${rendered.text}</a>`
+                    for (let i = 0; i < shiftToNext; i++)
+                        html += "<ul>"
+                } else if (shiftToNext < 0) {
+                    html += `<li><a href="${rendered.href}">${rendered.text}</a></li>`
+                    for (let i = 0; i > shiftToNext; i--)
+                        html += "</ul>"
+                    html += "</li>"
+                } else
+                    html += `<li><a href="${rendered.href}">${rendered.text}</a></li>`
             }
-
-            if (!pageName){
-                pageName = link
-            }
-
-            // make sure page name has correct format
-            pageName = pageName.replace(/ /g, "-")
-
-            // convert [[<link title> | <page name>]] to [<link title>](<page name>)
-            link = `[${linkTitle}](${pageName})`
-            return link
+            rendered = tocItem
         })
+
+        // render last item
+        let shiftToNext = this.level - rendered.level + 1
+        html += `<li><a href="${rendered.href}">${rendered.text}</a></li>`
+        for (let i = 0; i > shiftToNext; i--)
+            html += "</ul>"
+        html += "</li>"
+
+        // end
+        html += `
+    </ul>
+    </div>`
+
+        return html
+    }
+
+    static normaliseMd(markdown) {
+        // remove Gollum TOC (is detected before this place)
+        // normalise links
+        return markdown
+            .replace(/\[\[_TOC_[^\]]*\]\]/g, "")
+            .replace(/\[\[([^\]]+)\]\]/g, function (allPattern, link) {
+
+                // inside of brekets link can be added as:
+                // - page name only [[Calls]], [[Call-Log]];
+                // - link title only [[Call Log]];
+                // - link title and page name [[Call Log|Call-Log]], [[Log|Call Log]].
+
+                // search for link title
+                let linkTitle = link.replace(/\|([^\|]+)/, "")
+
+                // search for page name
+                let pageName = link.replace(/([^\|]+)\|/, "")
+
+                if (!linkTitle) {
+                    linkTitle = link
+                }
+
+                if (!pageName) {
+                    pageName = link
+                }
+
+                // make sure page name has correct format
+                pageName = pageName.replace(/ /g, "-")
+
+                // convert [[<link title> | <page name>]] to [<link title>](<page name>)
+                link = `[${linkTitle}](${pageName})`
+                return link
+            })
     }
 
     static getPageIdFromFilenameOrLink(filename) {
