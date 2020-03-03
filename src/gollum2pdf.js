@@ -136,7 +136,12 @@ class Gollum2pdf
         let headerAttrs = ""
         if (!self.pageIdAttached) {
           self.pageIdAttached = true
-          headerAttrs=`id="${self.pageId}" style="page-break-before: always !important;"`
+          let pageBreak = ""
+          if (self.pageLevelOffset <= self.options.pageBreakMaxLevel) {
+            pageBreak = `style="page-break-before: always !important;"`
+          }
+
+          headerAttrs=`id="${self.pageId}" ${pageBreak}`
         }
 
         return `
