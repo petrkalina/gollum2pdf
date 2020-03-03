@@ -133,16 +133,16 @@ class Gollum2pdf
         level += self.pageLevelOffset
 
         // attach id to the first heading
-        let idText = ""
+        let headerAttrs = ""
         if (!self.pageIdAttached) {
           self.pageIdAttached = true
-          idText = `id="${self.pageId}"`
+          headerAttrs=`id="${self.pageId}" style="page-break-before: always !important;"`
         }
 
         return `
-          <h${level}>
+          <h${level} ${headerAttrs}>
             <a name="${escapedText}" class="anchor" href="#${escapedText}">
-              <span ${idText} class="header-link"></span>
+              <span class="header-link"></span>
             </a>
             ${text}
           </h${level}>`
@@ -158,11 +158,10 @@ class Gollum2pdf
       }
 
       this.pageRenderer.link = function (href, title, text) {
-        let node = self.nodes.get(href)
-
         // internal links (shuold also allow other extensions here!!)
         if (!href.match(/^https?:\/\//)) {
           // internal links are via #
+          let node = self.nodes.get(href)
           if (node) {
             href = '#' + node.id
           } else if (!href.startsWith("#")) {
@@ -170,11 +169,6 @@ class Gollum2pdf
             return `<span class="disabled-link">${text}</span>`
           }
         }
-
-        // detect non-existing page references
-
-
-
         // external link remain..
         return `<a href="${href}">${text}</a>`
 
