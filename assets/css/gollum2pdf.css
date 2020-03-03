@@ -1,0 +1,9 @@
+.pdf-doc .coverimg {
+    max-width:50%;
+}
+
+.pdf-doc .covertitle {
+    padding-top: 40%;
+    text-align: right;
+    font-size: 40px;
+}
