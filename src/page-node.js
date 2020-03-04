@@ -61,10 +61,9 @@ class PageNode
     extractMdOptsFromMd() {
         if (!this.mdOpts) {
             this.mdOpts = {}
-
             // detect Gollum TOC
-            const toc = RegExp('/\\[\\[_TOC_[^\\]]*\\]\\]/g');
-            this.mdOpts.toc = toc.test(this.md)
+            const tocRegex = /\[\[_TOC_[^\]]*\]\]/gm
+            this.mdOpts.toc = tocRegex.test(this.md)
         }
 
         return this.mdOpts

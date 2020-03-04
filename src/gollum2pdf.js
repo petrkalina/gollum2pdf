@@ -145,7 +145,8 @@ class Gollum2pdf
           headerAttrs=`id="${self.pageNode.id}" ${pageBreak}`
 
           // attach toc to the first heading
-          toc = self.pageNode.renderToc()
+          if (self.pageNode.mdOpts.toc)
+            toc = self.pageNode.renderToc()
         }
 
         return `
@@ -209,6 +210,7 @@ class Gollum2pdf
 
   renderPage(node)
   {
+    console.debug(`Rendering page node: ${node.toString()} `)
     // this has to be your code, including level!!
     let md = PageNode.normaliseMd(node.readMd())
 
@@ -219,10 +221,6 @@ class Gollum2pdf
     // state passed to / maintained by renderer callbacks
     this.pageIdAttached = false
     this.pageNode = node
-
-    if (node.extractMdOptsFromMd().toc)
-      node.generateToc()
-
     let pageHtml = marked(md, {renderer: this.getPageRenderer()})
 
     return pageIdAnchor.concat(pageHtml)
