@@ -1,96 +1,38 @@
 'use strict'
 
-const marked = require('marked'),
-    fs = require('fs-extra'),
-    util = require('util'),
-    path = require('path'),
-    datauri = require('datauri').sync,
-    highlight = require('highlight.js'),
-    find = require('find'),
-    wkhtmltopdf = require('wkhtmltopdf'),
-    HtmlBuilder = require('./html-builder'),
+const HtmlRenderer = require('./html-renderer'),
+    PdfRenderer = require('./pdf-renderer'),
     PageNode = require('./page-node')
-
-class TocItem
-{
-  constructor(level, text, href) {
-    this.level = level
-    this.text = text
-    this.href = href
-  }
-}
 
 class Gollum2pdf
 {
+  constructor(programOpts) {
+    this.programOpts = programOpts
 
-  constructor(wikiRootPath, options) {
-    this.wikiRootPath = wikiRootPath
-    this.options = options
+    let path = programOpts.rootPagePath
+    let title = programOpts.title
 
-    // state when rendering a page
-    this.pageIdAttached = false
-    this.pageId = null
-    this.pageLevelOffset = 0
+    this.root = new PageNode(path, title, path, programOpts)
+    this.nodes = new Map()
+    this.nodes.set(path, this.root)
 
-      let path = options.rootPagePath
-      let title = options.title
+    this.root.extractChildren(this.nodes)
 
-      this.nodes = new Map()
-      this.root = new PageNode(path, title, path)
-      this.nodes.set(path, this.root)
-
-      // innit nodes
-      // renderer is parameterized by the parent paramater
-      // the link callback cannot be parameterized, so it would have to be a property of the renderer that is set before calling the rendering
-      // .. so for the moment it is like this
-      this.extractChidren(this.root, this.nodes)
-
-      console.log("Extraction finished, page tree is:")
-      this.nodes.forEach(node => {
-            console.log(node.toString())
-          }
-      )
+    console.log("Extraction finished, page tree is:")
+    this.nodes.forEach(node => {
+          console.log(node.toString())
+        }
+    )
   }
 
-  renderHtml() {
-
-    let nodeList = new Array()
-    Gollum2pdf.dfs(this.root, nodeList)
-
-    console.log("Serialization finished - serialised node list:")
-    nodeList.forEach(node => {
-      console.log(node.toString())
-    })
-
-    let htmlBuilder = new HtmlBuilder(this.options)
-    let html = htmlBuilder.buildHeader()
-
-    // render TOC
-    // let prev = null
-    // nodeList.forEach(node => {
-    //   // this does not work yet somehow
-    //   //if (node.level <= this.options.refTracingTocMaxLevel) {
-    //     let nodeHtml = this.renderTocItem(node, prev)
-    //     //console.debug("appending: " + nodeHtml)
-    //     html += nodeHtml
-    //   //}
-    //   prev = node
-    // }, this)
-
-    // render pages
-    nodeList.forEach(node => {
-      let nodeHtml = this.renderPage(node)
-      //console.debug("appending: " + nodeHtml)
-      html += nodeHtml
-    }, this)
-
-    html += htmlBuilder.buildFooter()
-    return html
+  renderHtml(htmlOutFile) {
+    // build html elements
+    let htmlRenderer = new HtmlRenderer(this.root, this.nodes, this.programOpts)
+    return htmlRenderer.renderPages(htmlOutFile)
   }
 
-  renderPdf(html, pdfFile)
-  {
-    // todo: other options process alter
+  renderPdf(html, pdfOutFile) {
+    // todo: other options process after
     // let footer = this.converter.getOption('footer')
     // let pdfPageCount = this.converter.getOption('pdfPageCount')
 
@@ -107,245 +49,8 @@ class Gollum2pdf
     //  wkhtml2pdfOptions.footerRight = "[page]/[toPage]"
     //}
 
-    return new Promise(function (resolve, reject) {
-      wkhtmltopdf(html, wkhtml2pdfOptions)
-          .on('end', function () {
-            console.info('pdf conversion finished: %s', pdfFile)
-            resolve(pdfFile)
-          })
-          .on('error', reject)
-          .pipe(fs.createWriteStream(pdfFile))
-    })
-  }
-
-  // references: wikiRootPath, node, nodes
-  getPageRenderer()
-  {
-    let self = this
-    if (!this.pageRenderer) {
-      this.pageRenderer = new marked.Renderer()
-
-      // optionally insert i.e. X.Y.Z to headings (... only the ones for which there are nodes present!)
-      this.pageRenderer.heading = function (text, level) {
-        const escapedText = text.toLowerCase().replace(/[^\w]+/g, '-');
-
-        // offset headers by level
-        level += self.pageNode.level
-
-        let headerAttrs = ""
-        let toc = ""
-        if (!self.pageIdAttached) {
-          // attach id to the first heading
-          self.pageIdAttached = true
-          let pageBreak = ""
-          if (self.pageNode.level <= self.options.pageBreakMaxLevel) {
-            pageBreak = `style="page-break-before: always !important;"`
-          }
-
-          headerAttrs=`id="${self.pageNode.id}" ${pageBreak}`
-
-          // attach toc to the first heading
-          if (self.pageNode.mdOpts.toc)
-            toc = self.pageNode.renderToc()
-        }
-
-        return `
-          <h${level} ${headerAttrs}>
-            <a name="${escapedText}" class="anchor" href="#${escapedText}">
-              <span class="header-link"></span>
-            </a>
-            ${text}
-          </h${level}>
-        
-          ${toc}`
-      }
-
-      this.pageRenderer.code = function (code, lang) {
-        if (lang && highlight.getLanguage(lang)) {
-          code = highlight.highlight(lang, code, true)
-        } else {
-          code = highlight.highlightAuto(code)
-        }
-        return `<pre class="hljs">${code.value}</pre>`
-      }
-
-      this.pageRenderer.link = function (href, title, text) {
-        // internal links (shuold also allow other extensions here!!)
-        if (!href.match(/^https?:\/\//)) {
-          // internal links are via #
-          let node = self.nodes.get(href)
-          if (node) {
-            href = '#' + node.id
-          } else if (!href.startsWith("#")) {
-            // link to page that was not found
-            return `<span class="disabled-link">${text}</span>`
-          }
-        }
-        // external link remain..
-        return `<a href="${href}">${text}</a>`
-
-        // todo: add support for gollum images
-      }
-
-      this.pageRenderer.image = function (href, title, text) {
-        if (!href.match(/^https?:\/\//)) {
-          // transform internal images into data URI
-          let imagePath = self.getImageFilePath(href)
-          let dataURI = "detauri_error"
-          try {
-            dataURI = datauri(imagePath)
-          } catch (e) {
-            console.warn("Error resolving Image Path: ".concat(href))
-          }
-          return util.format('<img alt="%s" src="%s" />', text, dataURI)
-        } else {
-          return util.format('<img alt="%s" src="%s" />', text, href)
-        }
-      }
-    }
-
-    return this.pageRenderer
-
-  }
-
-  renderPage(node)
-  {
-    console.debug(`Rendering page node: ${node.toString()} `)
-    // this has to be your code, including level!!
-    let md = PageNode.normaliseMd(node.readMd())
-
-    // todo: improve .. prepend header for the page
-    // let pageIdAnchor=`<h1 id="${node.id}" style="page-break-before: always !important;">${node.text}</h1>`
-    let pageIdAnchor=""
-
-    // state passed to / maintained by renderer callbacks
-    this.pageIdAttached = false
-    this.pageNode = node
-    let pageHtml = marked(md, {renderer: this.getPageRenderer()})
-
-    return pageIdAnchor.concat(pageHtml)
-  }
-
-  renderTocItem(node, prev)
-  {
-    let html = ""
-
-    // if root, ignore..
-    if (prev) {
-      let shift = node.level - prev.level
-
-      if (shift > 1)
-        console.error("Wrong level shift in TOC:" + shift)
-
-      // sub-list
-      if (shift === 1) {
-        html += "<ul>"
-      }
-
-      // indent
-      for (let i = 0; i < node.level; i++) {
-        html += "  "
-      }
-
-      // item
-      html += `<li><a href="#${node.id}">${node.text}</a></li>`
-
-      // close sublists all the way to the current level
-      if (shift < 0) {
-        for (let i = 0; i > shift; i--) {
-          html += "</ul>"
-        }
-      }
-    }
-
-    return html
-  }
-
-  getMdFilePath(href) {
-    // replicate gollum refs by searching for canonical name..
-    let gollumPattern = href
-        .replace(" ", "-")
-        .replace("(","\\(")
-        .replace(")", "\\)")
-        .concat(".md")
-
-    let files = find.fileSync(new RegExp(gollumPattern, 'i'), this.wikiRootPath)
-    if (files.length !== 1) {
-      //console.error("Page: Error getting path for href=" + href + ", matches: " + files)
-      return "not-found"
-    }
-
-    return files[0]
-  }
-
-  getImageFilePath(href) {
-    // replicate gollum refs by searching for canonical name..
-    let gollumPattern = href
-        .replace("(", "\\(")
-        .replace(")", "\\)")
-
-    let files = find.fileSync(new RegExp(gollumPattern), this.wikiRootPath)
-    if (files.length !== 1) {
-      console.error("Image: Error getting path for href=" + href + ", matches: " + files)
-      return "not-found"
-    }
-
-    return files[0]
-  }
-
-  extractChidren(parent, nodes) {
-    console.log("extracting children of: " + parent.toString())
-
-    let converter = this
-
-    // setup once only outside this block
-    let refRenderer = new marked.Renderer()
-
-    // extract first heading
-    refRenderer.heading = function (text, level) {
-      if (!parent.heading)
-        parent.heading = text
-
-      // aggregate TOC here
-      const escapedText = text.toLowerCase().replace(/[^\w]+/g, '-');
-      parent.toc.push(new TocItem(level, text, `#${escapedText}`))
-    }
-
-    // if new min depth for linked page, create child
-    // .. will be parsed as part of next recursion
-    refRenderer.link = function(href, title, text) {
-      // links are normalised alredy. recognise internal links:
-      if (!href.match(/^https?:\/\//)) {
-        let prev = nodes.get(href)
-        let level = parent.level + 1
-        if (!prev) {
-          let mdFilePath = converter.getMdFilePath(href)
-          if (mdFilePath !== "not-found") {
-            // title seems not to be the right field..
-            let x = new PageNode(href, text, mdFilePath)
-            parent.addChild(x)
-            nodes.set(href, x)
-            converter.extractChidren(x, nodes)
-          }
-        } else {
-          if (level < prev.level) {
-            prev.parent.removeChild(prev)
-            // levels corrected on addChild operation for whole subtree..
-            parent.addChild(prev)
-          }
-        }
-      }
-    }
-
-    marked(PageNode.normaliseMd(parent.readMd()), { renderer: refRenderer })
-  }
-
-  static dfs(parent, nodeList)
-  {
-    nodeList.push(parent)
-    parent.children.forEach(child => {Gollum2pdf.dfs(child, nodeList)})
-
-    return nodeList
+    let pdfRenderer = new PdfRenderer(wkhtml2pdfOptions)
+    pdfRenderer.renderPdf(html, pdfOutFile)
   }
 }
 

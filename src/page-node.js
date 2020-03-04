@@ -1,17 +1,30 @@
 'use strict'
 
 const fs = require('fs-extra'),
-    path = require('path')
+    path = require('path'),
+    marked = require('marked'),
+    find = require('find')
+
+class TocItem
+{
+    constructor(level, text, href) {
+        this.level = level
+        this.text = text
+        this.href = href
+    }
+}
+
 
 class PageNode
 {
     // from markdown link function output when parsing parent MD
-    constructor(href, text, path) {
+    constructor(href, text, path, programOpts) {
         this.href = href
         this.text = text
         this.path = path
         this.level = 0
         this.id = PageNode.getPageIdFromFilenameOrLink(this.path)
+        this.programOpts = programOpts
 
         // for ref tracing
         this.parent = null
@@ -110,6 +123,84 @@ class PageNode
         return html
     }
 
+    extractChildren(nodes) {
+        console.log("extracting children of: " + this.toString())
+
+        // setup once only outside this block
+        let refRenderer = new marked.Renderer()
+        let self = this
+
+        // extract first heading
+        refRenderer.heading = function (text, level) {
+            if (!self.heading)
+                self.heading = text
+
+            // aggregate TOC here
+            const escapedText = text.toLowerCase().replace(/[^\w]+/g, '-')
+            self.toc.push(new TocItem(level, text, `#${escapedText}`))
+        }
+
+        // if new min depth for linked page, create child
+        // .. will be parsed as part of next recursion
+        refRenderer.link = function(href, title, text) {
+            // links are normalised alredy. recognise internal links:
+            if (!href.match(/^https?:\/\//)) {
+                let prev = nodes.get(href)
+                let level = self.level + 1
+                if (!prev) {
+                    let mdFilePath = self.getMdFilePath(href)
+                    if (mdFilePath !== "not-found") {
+                        // title seems not to be the right field..
+                        let x = new PageNode(href, text, mdFilePath, self.programOpts)
+                        self.addChild(x)
+                        nodes.set(href, x)
+                        x.extractChildren(nodes)
+                    }
+                } else {
+                    if (level < prev.level) {
+                        prev.parent.removeChild(prev)
+                        // levels corrected on addChild operation for whole subtree..
+                        self.addChild(prev)
+                    }
+                }
+            }
+        }
+
+        marked(PageNode.normaliseMd(this.readMd()), { renderer: refRenderer })
+    }
+
+    getMdFilePath(href) {
+        // replicate gollum refs by searching for canonical name..
+        let gollumPattern = href
+            .replace(" ", "-")
+            .replace("(","\\(")
+            .replace(")", "\\)")
+            .concat(".md")
+
+        let files = find.fileSync(new RegExp(gollumPattern, 'i'), this.programOpts.wikiRootPath)
+        if (files.length !== 1) {
+            //console.error("Page: Error getting path for href=" + href + ", matches: " + files)
+            return "not-found"
+        }
+
+        return files[0]
+    }
+
+    getImageFilePath(href) {
+        // replicate gollum refs by searching for canonical name..
+        let gollumPattern = href
+            .replace("(", "\\(")
+            .replace(")", "\\)")
+
+        let files = find.fileSync(new RegExp(gollumPattern), this.programOpts.wikiRootPath)
+        if (files.length !== 1) {
+            console.error("Image: Error getting path for href=" + href + ", matches: " + files)
+            return "not-found"
+        }
+
+        return files[0]
+    }
+
     static normaliseMd(markdown) {
         // remove Gollum TOC (is detected before this place)
         // normalise links
@@ -152,6 +243,14 @@ class PageNode
         }
         return base.toLowerCase().replace(/[^\w]+/g, '-')
         //return base.replace(/([^a-z0-9\-_~.]+)/gi, '')
+    }
+
+    static dfs(parent, nodeList)
+    {
+        nodeList.push(parent)
+        parent.children.forEach(child => {PageNode.dfs(child, nodeList)})
+
+        return nodeList
     }
 
 }

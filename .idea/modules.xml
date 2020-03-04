@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/gollum2pdf.iml" filepath="$PROJECT_DIR$/.idea/gollum2pdf.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../wikito/.idea/wikito.iml" filepath="$PROJECT_DIR$/../wikito/.idea/wikito.iml" />
     </modules>
   </component>
 </project>
