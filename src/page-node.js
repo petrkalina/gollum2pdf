@@ -14,7 +14,6 @@ class TocItem
     }
 }
 
-
 class PageNode
 {
     // from markdown link function output when parsing parent MD

@@ -44,6 +44,48 @@ class HtmlRenderer
     return html
   }
 
+  renderPageToc(node)
+  {
+    let html = `<div class="toc">
+    <div class="toc-title">Table of Contents</div>
+    <ul>`
+
+    // render items
+    let rendered = null
+    node.toc.forEach(tocItem => {
+      if (rendered) {
+        let shiftToNext = tocItem.level - rendered.level
+
+        if (shiftToNext > 0) {
+          html += `<li><a href="${rendered.href}">${rendered.text}</a>`
+          for (let i = 0; i < shiftToNext; i++)
+            html += "<ul>"
+        } else if (shiftToNext < 0) {
+          html += `<li><a href="${rendered.href}">${rendered.text}</a></li>`
+          for (let i = 0; i > shiftToNext; i--)
+            html += "</ul>"
+          html += "</li>"
+        } else
+          html += `<li><a href="${rendered.href}">${rendered.text}</a></li>`
+      }
+      rendered = tocItem
+    })
+
+    // render last item
+    let shiftToNext = this.level - rendered.level + 1
+    html += `<li><a href="${rendered.href}">${rendered.text}</a></li>`
+    for (let i = 0; i > shiftToNext; i--)
+      html += "</ul>"
+    html += "</li>"
+
+    // end
+    html += `
+    </ul>
+    </div>`
+
+    return html
+  }
+
   renderPage(node)
   {
     console.debug(`Rendering page node: ${node.toString()} `)
@@ -84,7 +126,7 @@ class HtmlRenderer
 
           // attach toc to the first heading
           if (self.pageNode.mdOpts.toc)
-            toc = self.pageNode.renderToc()
+            toc = self.renderPageToc(self.pageNode)
         }
 
         return `
