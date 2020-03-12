@@ -32,24 +32,7 @@ class Gollum2pdf
   }
 
   renderPdf(html, pdfOutFile) {
-    // todo: other options process after
-    // let footer = this.converter.getOption('footer')
-    // let pdfPageCount = this.converter.getOption('pdfPageCount')
-
-    let wkhtml2pdfOptions = {
-      toc: false, outline: true,
-      marginLeft: 10, marginRight: 10,
-      footerLine: false, footerSpacing: 2.5,
-      footerFontSize: 10, pageOffset: 0
-    }
-    //if (footer) {
-    //  wkhtml2pdfOptions.footerLeft = footer
-    //}
-    //if (pdfPageCount) {
-    //  wkhtml2pdfOptions.footerRight = "[page]/[toPage]"
-    //}
-
-    let pdfRenderer = new PdfRenderer(wkhtml2pdfOptions)
+    let pdfRenderer = new PdfRenderer(this.programOpts)
     pdfRenderer.renderPdf(html, pdfOutFile)
   }
 }

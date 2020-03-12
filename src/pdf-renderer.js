@@ -5,8 +5,35 @@ const wkhtmltopdf = require('wkhtmltopdf'),
 
 class PdfRenderer {
     // from markdown link function output when parsing parent MD
-    constructor(wkhtml2pdfOptions) {
-        this.wkhtml2pdfOptions = wkhtml2pdfOptions
+    constructor(programOpts) {
+        // todo: other options process after
+        // let footer = this.converter.getOption('footer')
+        // let pdfPageCount = this.converter.getOption('pdfPageCount')
+
+
+
+        this.wkhtml2pdfOptions = {
+            toc: false,
+            outline: true,
+            marginLeft: 10,
+            marginRight: 10,
+            footerLine: false,
+            footerSpacing: 2.5,
+            footerFontSize: 10,
+            pageOffset: 0
+        }
+
+        // check id custom.css exists and if yes, load it
+        let gollumDefaultCustomCss = `${programOpts.wikiRootPath}/custom.css`
+        if (fs.existsSync(gollumDefaultCustomCss))
+            this.wkhtml2pdfOptions.userStyleSheet = gollumDefaultCustomCss
+
+        //if (footer) {
+        //  wkhtml2pdfOptions.footerLeft = footer
+        //}
+        //if (pdfPageCount) {
+        //  wkhtml2pdfOptions.footerRight = "[page]/[toPage]"
+        //}
     }
 
     renderPdf(html, pdfFile)

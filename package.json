@@ -12,7 +12,7 @@
   "main": "index.js",
   "scripts": {
     "build": "rm -rf dist/* && ./node_modules/.bin/babel src --out-dir dist --source-maps",
-    "build-and-install-g": "npm run build && npm install -g"
+    "build-and-install-g": "npm run build && npm install --no-optional -g"
   },
   "bin": {
     "gollum2pdf": "dist/cli/gollum2pdf-cli.js"

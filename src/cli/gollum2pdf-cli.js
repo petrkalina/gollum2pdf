@@ -60,12 +60,17 @@ class Gollum2pdfCli {
       // not yet added to interface
       cssDir: "assets/css",
       jsDir: "assets/js"
+
+      // the idea is to replace references in styles ?? that's shit. the styles HAVE to work on both sides..
+      // the paths have to work - which mean wkhtml2pdf has to be invoked in the wiki root dir
+      // but currently this does not work here!
+
     }
 
     let gollum2pdf = new Gollum2pdf(programOpts)
 
     // render html
-    let htmlFile = path.join("./", programOpts.outputDir, "gollum2pdf.html")
+    let htmlFile = path.join(programOpts.outputDir, "gollum2pdf.html")
     let html = gollum2pdf.renderHtml(htmlFile)
 
     // render PDF (out file is used in pipe at the end of command..)

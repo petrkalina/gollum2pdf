@@ -119,7 +119,7 @@ class HtmlRenderer
           self.pageIdAttached = true
           let pageBreak = ""
           if (self.pageNode.level <= self.programOpts.pageBreakMaxLevel) {
-            pageBreak = `style="page-break-before: always !important;"`
+            pageBreak = `style="page-break-before: always !important"`
           }
 
           headerAttrs=`id="${self.pageNode.id}" ${pageBreak}`
@@ -170,7 +170,7 @@ class HtmlRenderer
       this.pageRenderer.image = function (href, title, text) {
         if (!href.match(/^https?:\/\//)) {
           // transform internal images into data URI
-          let imagePath = self.getImageFilePath(href)
+          let imagePath = self.pageNode.getImageFilePath(href)
           let dataURI = "detauri_error"
           try {
             dataURI = datauri(imagePath)
@@ -200,6 +200,11 @@ class HtmlRenderer
     return css
   }
 
+  buildGollumCustomCss()
+  {
+    return `<link rel="stylesheet" type="text/css" href="${this.programOpts.wikiRootPath}/custom.css" />`
+  }
+
   buildJs() {
     return ""
   }
@@ -214,6 +219,7 @@ class HtmlRenderer
     <title>${this.programOpts.title}</title>
     ${this.buildCss()}
     ${this.buildJs()}
+    ${this.buildGollumCustomCss()}
   </head>
   <body id="page-top" class="pdf-doc">
     <div class='covertitle'>
