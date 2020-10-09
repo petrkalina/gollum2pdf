@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 "use strict"
 
 const program = require('commander'),
@@ -14,12 +12,12 @@ class Gollum2pdfCli {
     // version an be taken from package version..
     this.program = program.version(1.0)
 
-        .usage('[options] <wiki-dir> <page-path> <pdf-file>
+        .usage('[options] <wiki-dir> <page-path> <pdf-file>')
         .description('Convert a gollum wiki page to PDF')
 
         .option("-c, --cover-pdf <pdf-file>", "Cover PDF")
         .option("-t, --title <title>", "Document title", "wiki2pdf")
-        .option("-a, --assets-dir", "Directory with header.html, footer.html and css directory with styles", "/gollum2pdf/assets")
+        .option("-a, --assets-dir <assets-dir>", "Directory with header.html, footer.html and css directory with styles", "./assets")
 
         .option("-b, --page-break-max-level <level>", "Do not insert page breaks for pages with higher level")
         .option("--title-toc-max-level <title-toc-max-level>", "Title TOC max page level")
@@ -39,15 +37,15 @@ class Gollum2pdfCli {
 
       // root path
       wikiRootPath: this.program.args[0],
-      rootPagePath: this.program.args[1]
-      pdfFile: this.program.args[2]
+      rootPagePath: this.program.args[1],
+      pdfFile: this.program.args[2],
 
-      pdfCover: this.program.coverPDF,
+      pdfCover: this.program.coverPdf,
       title: this.program.title,
-      assetsDir=this.program.assetsDir
+      assetsDir: this.program.assetsDir,
 
-      cssDir: path.join(assetsDir, "css"),
-      jsDir: path.join(assetsDir, "js"),
+      cssDir: path.join(this.program.assetsDir, "css"),
+      jsDir: path.join(this.program.assetsDir, "js"),
 
       pageBreakMaxLevel: this.program.pageBreakMaxLevel ? parseInt(this.program.pageBreakMaxLevel) : 1,
       // max level for generated TOC - 0 to disable

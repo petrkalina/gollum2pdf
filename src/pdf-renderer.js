@@ -43,7 +43,7 @@ class PdfRenderer {
     renderPdf(html, pdfFile)
     {
         let self = this
-        let pdfTmpFile = `${pdfFile}.tmp`
+        let pdfTmpFile = "/tmp/wiki2pfd-no-cover.pdf"
         return new Promise(function (resolve, reject) {
             wkhtmltopdf(html, self.wkhtml2pdfOptions)
                 .on('end', function () {
