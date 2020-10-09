@@ -1,0 +1,65 @@
+<html>
+<head>
+    <style type="text/css">
+		body{
+			display: block;
+			height:22mm;
+			width:200mm;
+			margin: 0 auto;
+			padding:0;
+			font-size: 13px;
+		}
+		.logo{
+			display: block;
+			width: 40mm;
+			height:17mm;
+			background-size: 35mm auto;
+			background-image: url(j4care.png);
+			background-position: bottom right;
+			background-repeat: no-repeat;
+
+		}
+		.left{
+			float:left;
+			margin-left: 2mm;
+		}
+		.right{
+			float:right;
+			margin-right: 2mm;
+			margin-bottom: 5mm;
+		}
+		.page{
+			float:right;
+		}
+		.footer{
+			border-top: 2px solid #8db3e2;
+			margin-top: 5mm;
+			padding-top: 2mm;
+			float: left;
+			width: 100%;
+			display: block;
+			height: 15mm;
+		}
+	</style>
+	<script type="text/javascript">
+		function subst() {
+		  var vars={};
+		  var x=document.location.search.substring(1).split('&');
+		  for (var i in x) {var z=x[i].split('=',2);vars[z[0]] = unescape(z[1]);}
+		  var x=['frompage','topage','page','webpage','section','subsection','subsubsection'];
+		  for (var i in x) {
+		    var y = document.getElementsByClassName(x[i]);
+		    for (var j=0; j<y.length; ++j) y[j].textContent = vars[x[i]];
+		  }
+		}
+	</script>
+</head>
+<body onload="subst()">
+<div class="footer" style="color:#8db3e2">
+	<div class="left" style="color:#8db3e2" color="#8db3e2">Generated from dcm4chee-pro wiki..</div>
+	<div class="right" style="color:#8db3e2"><span class="page"></span>
+		<div class="logo"></div>
+	</div>
+</div>
+</body>
+</html>

@@ -11,6 +11,7 @@ class PdfRenderer {
         // let pdfPageCount = this.converter.getOption('pdfPageCount')
 
 
+        this.prorgamOpts = programOpts
 
         this.wkhtml2pdfOptions = {
             toc: false,
@@ -20,7 +21,10 @@ class PdfRenderer {
             footerLine: false,
             footerSpacing: 2.5,
             footerFontSize: 10,
-            pageOffset: 0
+            pageOffset: 0,
+            footerHtml: `${programOpts.assetsDir}/footer_dcs.html`,
+            headerHtml: `${programOpts.assetsDir}/header_dcs.html`
+
         }
 
         // check id custom.css exists and if yes, load it
@@ -39,14 +43,38 @@ class PdfRenderer {
     renderPdf(html, pdfFile)
     {
         let self = this
+        let pdfTmpFile = `${pdfFile}.tmp`
         return new Promise(function (resolve, reject) {
             wkhtmltopdf(html, self.wkhtml2pdfOptions)
                 .on('end', function () {
-                    console.info('pdf conversion finished: %s', pdfFile)
-                    resolve(pdfFile)
+                    console.info('pdf conversion finished: %s', pdfTmpFile)
+
+                    //self.prependPdfCover(pdfTmpFile)
+                    console.info('prepended cover to %s: %s', pdfTmpFile, pdfFile)
+
+                    resolve(pdfTmpFile)
                 })
                 .on('error', reject)
-                .pipe(fs.createWriteStream(pdfFile))
+                .pipe(fs.createWriteStream(pdfTmpFile))
+        })
+    }
+
+    prependPdfCover(intermediatePdfFile)
+    {
+        let pdfFile = this.prorgamOpts.pdfFile
+        let pdfCover = this.prorgamOpts.pdfCover
+
+        const gsJoinPdf = `gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=${pdfFile} -dPrinted=false ${pdfCover} ${intermediatePdfFile}`
+
+        const { exec } = require('child_process')
+        exec(gsJoinPdf, (err, stdout, stderr) => {
+            if (err) {
+                console.error(err)
+                return
+            }
+
+            console.log(`stdout: ${stdout}`)
+            console.log(`stderr: ${stderr}`)
         })
     }
 }
