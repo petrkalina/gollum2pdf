@@ -22,8 +22,8 @@ class PdfRenderer {
             footerSpacing: 2.5,
             footerFontSize: 10,
             pageOffset: 0,
-            footerHtml: `${programOpts.assetsDir}/footer_dcs.html`,
-            headerHtml: `${programOpts.assetsDir}/header_dcs.html`
+            footerHtml: `${programOpts.assetsDir}/footer.html`,
+            headerHtml: `${programOpts.assetsDir}/header.html`
 
         }
 
@@ -49,7 +49,7 @@ class PdfRenderer {
                 .on('end', function () {
                     console.info('pdf conversion finished: %s', pdfTmpFile)
 
-                    //self.prependPdfCover(pdfTmpFile)
+                    self.prependPdfCover(pdfTmpFile)
                     console.info('prepended cover to %s: %s', pdfTmpFile, pdfFile)
 
                     resolve(pdfTmpFile)
