@@ -61,7 +61,7 @@ class Gollum2pdfCli {
       assetsDir: "assets",
       cssDir: "assets/css",
       jsDir: "assets/js",
-      pdfCover: "assets/pro-cs-cover.pdf",
+      pdfCover: "assets/smooth-archive-cover.pdf",
       pdfFile: path.join(this.program.output, "gollum2pdf.pdf"),
       htmlFile: path.join(this.program.output, "gollum2pdf.html")
 
