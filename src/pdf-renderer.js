@@ -22,6 +22,9 @@ class PdfRenderer {
             footerSpacing: 2.5,
             footerFontSize: 10,
             pageOffset: 0,
+            // wkhtmltopdf >= 0.12.6 blocks local files (header/footer html, css, images)
+            // by default -> ProtocolUnknownError. Re-enable so local assets load.
+            enableLocalFileAccess: true,
             footerHtml: `${programOpts.assetsDir}/footer.html`,
             headerHtml: `${programOpts.assetsDir}/header.html`
 
