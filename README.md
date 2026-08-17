@@ -34,4 +34,5 @@ gollum2pdf [options] <wiki-dir> <page-path> <pdf-file>
 
 > Needs `wkhtmltopdf >= 0.12.6` local-file-access (`enableLocalFileAccess`, in `src/pdf-renderer.js`).
 
-Renders one page; internal `[[links]]` that resolve to a file are inlined, others become plain text.
+Renders one page. Full `http(s)://` links (including `https://docs.j4care.com/…`) stay clickable;
+gollum `[[wiki links]]` are inlined when the target page resolves, otherwise shown as plain text.
